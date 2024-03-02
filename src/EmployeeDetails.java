@@ -292,49 +292,38 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		return empDetails;
 	}// end detailsPanel
 
-	// display current Employee details
-	public void displayRecords(Employee thisEmployee) {
-		int countGender = 0;
-		int countDep = 0;
-		boolean found = false;
+    // Display current Employee details
+    public void displayRecords(Employee thisEmployee) {
+        if (thisEmployee == null || thisEmployee.getEmployeeId() == 0) {
+            return;
+        }
 
-		searchByIdField.setText("");
-		searchBySurnameField.setText("");
-		// if Employee is null or ID is 0 do nothing else display Employee
-		// details
-		if (thisEmployee == null) {
-		} else if (thisEmployee.getEmployeeId() == 0) {
-		} else {
-			// find corresponding gender combo box value to current employee
-			while (!found && countGender < gender.length - 1) {
-				if (Character.toString(thisEmployee.getGender()).equalsIgnoreCase(gender[countGender]))
-					found = true;
-				else
-					countGender++;
-			} // end while
-			found = false;
-			// find corresponding department combo box value to current employee
-			while (!found && countDep < department.length - 1) {
-				if (thisEmployee.getDepartment().trim().equalsIgnoreCase(department[countDep]))
-					found = true;
-				else
-					countDep++;
-			} // end while
-			idField.setText(Integer.toString(thisEmployee.getEmployeeId()));
-			ppsField.setText(thisEmployee.getPps().trim());
-			surnameField.setText(thisEmployee.getSurname().trim());
-			firstNameField.setText(thisEmployee.getFirstName());
-			genderCombo.setSelectedIndex(countGender);
-			departmentCombo.setSelectedIndex(countDep);
-			salaryField.setText(format.format(thisEmployee.getSalary()));
-			// set corresponding full time combo box value to current employee
-			if (thisEmployee.getFullTime() == true)
-				fullTimeCombo.setSelectedIndex(1);
-			else
-				fullTimeCombo.setSelectedIndex(2);
-		}
-		change = false;
-	}// end display records
+        int countGender = findIndex(gender, Character.toString(thisEmployee.getGender()));
+        int countDep = findIndex(department, thisEmployee.getDepartment().trim());
+
+        idField.setText(Integer.toString(thisEmployee.getEmployeeId()));
+        ppsField.setText(thisEmployee.getPps().trim());
+        surnameField.setText(thisEmployee.getSurname().trim());
+        firstNameField.setText(thisEmployee.getFirstName());
+        genderCombo.setSelectedIndex(countGender);
+        departmentCombo.setSelectedIndex(countDep);
+        salaryField.setText(format.format(thisEmployee.getSalary()));
+        fullTimeCombo.setSelectedIndex(thisEmployee.getFullTime() ? 1 : 2);
+
+        change = false;
+    }
+
+    // Helper method to find index in an array
+    private int findIndex(String[] array, String value) {
+        for (int i = 0; i < array.length; i++) {
+            if (value.equalsIgnoreCase(array[i])) {
+                return i;
+            }
+        }
+        return -1; // Not found
+    }
+   
+
 
 	// display Employee summary dialog
 	private void displayEmployeeSummaryDialog() {
@@ -355,126 +344,165 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 			new SearchBySurnameDialog(EmployeeDetails.this);
 	}// end displaySearchBySurnameDialog
 
-	// find byte start in file for first active record
-	private void firstRecord() {
-		// if any active record in file look for first record
-		if (isSomeoneToDisplay()) {
-			// open file for reading
-			application.openReadFile(file.getAbsolutePath());
-			// get byte start in file for first record
-			currentByteStart = application.getFirst();
-			// assign current Employee to first record in file
-			currentEmployee = application.readRecords(currentByteStart);
-			application.closeReadFile();// close file for reading
-			// if first record is inactive look for next record
-			if (currentEmployee.getEmployeeId() == 0)
-				nextRecord();// look for next record
-		} // end if
-	}// end firstRecord
+    // Find byte start in file for the first active record
+    private void firstRecord() {
+        if (isSomeoneToDisplay()) {
+            openFileForReading();
+            findFirstRecord();
+            closeReadFileIfNeeded();
+            if (currentEmployee.getEmployeeId() == 0) {
+                nextRecord();
+            }
+        }
+    }
 
-	// find byte start in file for previous active record
-	private void previousRecord() {
-		// if any active record in file look for first record
-		if (isSomeoneToDisplay()) {
-			// open file for reading
-			application.openReadFile(file.getAbsolutePath());
-			// get byte start in file for previous record
-			currentByteStart = application.getPrevious(currentByteStart);
-			// assign current Employee to previous record in file
-			currentEmployee = application.readRecords(currentByteStart);
-			// loop to previous record until Employee is active - ID is not 0
-			while (currentEmployee.getEmployeeId() == 0) {
-				// get byte start in file for previous record
-				currentByteStart = application.getPrevious(currentByteStart);
-				// assign current Employee to previous record in file
-				currentEmployee = application.readRecords(currentByteStart);
-			} // end while
-			application.closeReadFile();// close file for reading
-		}
-	}// end previousRecord
+    // Open file for reading
+    private void openFileForReading() {
+        application.openReadFile(file.getAbsolutePath());
+    }
 
-	// find byte start in file for next active record
-	private void nextRecord() {
-		// if any active record in file look for first record
-		if (isSomeoneToDisplay()) {
-			// open file for reading
-			application.openReadFile(file.getAbsolutePath());
-			// get byte start in file for next record
-			currentByteStart = application.getNext(currentByteStart);
-			// assign current Employee to record in file
-			currentEmployee = application.readRecords(currentByteStart);
-			// loop to previous next until Employee is active - ID is not 0
-			while (currentEmployee.getEmployeeId() == 0) {
-				// get byte start in file for next record
-				currentByteStart = application.getNext(currentByteStart);
-				// assign current Employee to next record in file
-				currentEmployee = application.readRecords(currentByteStart);
-			} // end while
-			application.closeReadFile();// close file for reading
-		} // end if
-	}// end nextRecord
+    // Get byte start in file for the first record
+    private void findFirstRecord() {
+        currentByteStart = application.getFirst();
+        currentEmployee = application.readRecords(currentByteStart);
+    }
 
-	// find byte start in file for last active record
-	private void lastRecord() {
-		// if any active record in file look for first record
-		if (isSomeoneToDisplay()) {
-			// open file for reading
-			application.openReadFile(file.getAbsolutePath());
-			// get byte start in file for last record
-			currentByteStart = application.getLast();
-			// assign current Employee to first record in file
-			currentEmployee = application.readRecords(currentByteStart);
-			application.closeReadFile();// close file for reading
-			// if last record is inactive look for previous record
-			if (currentEmployee.getEmployeeId() == 0)
-				previousRecord();// look for previous record
-		} // end if
-	}// end lastRecord
+    // Close file for reading
+    private void closeReadFileIfNeeded() {
+        application.closeReadFile();
+    }
+
+    // Find byte start in file for the previous active record
+    private void previousRecord() {
+        if (isSomeoneToDisplay()) {
+            openFileForReading();
+            findPreviousRecord();
+            closeReadFile();
+        }
+    }
+
+    // Find byte start in file for the previous record
+    private void findPreviousRecord() {
+        currentByteStart = application.getPrevious(currentByteStart);
+        currentEmployee = application.readRecords(currentByteStart);
+
+        // Loop to previous record until Employee is active - ID is not 0
+        while (currentEmployee.getEmployeeId() == 0) {
+            currentByteStart = application.getPrevious(currentByteStart);
+            currentEmployee = application.readRecords(currentByteStart);
+        }
+    }
+
+    // Close file for reading
+    private void closeReadFile() {
+        application.closeReadFile();
+    }
+
+    private void nextRecord() {
+        if (isSomeoneToDisplay()) {
+            openFileForReading();
+            findNextRecord();
+            closeReadFile();
+        }
+    }
+
+    // Find byte start in file for the next record
+    private void findNextRecord() {
+        currentByteStart = application.getNext(currentByteStart);
+        currentEmployee = application.readRecords(currentByteStart);
+
+        // Loop to next record until Employee is active - ID is not 0
+        while (currentEmployee.getEmployeeId() == 0) {
+            currentByteStart = application.getNext(currentByteStart);
+            currentEmployee = application.readRecords(currentByteStart);
+        }
+    }
+
+
+    // Find byte start in file for the last active record
+    private void lastRecord() {
+        if (isSomeoneToDisplay()) {
+            openFileForReading();
+            findLastRecord();
+            closeReadFile();
+            if (currentEmployee.getEmployeeId() == 0) {
+                previousRecord();
+            }
+        }
+    }
+
+    // Find byte start in file for the last record
+    private void findLastRecord() {
+        currentByteStart = application.getLast();
+        currentEmployee = application.readRecords(currentByteStart);
+    }
+
 
 	// search Employee by ID
 	public void searchEmployeeById() {
 		boolean found = false;
 
-		try {// try to read correct correct from input
-				// if any active Employee record search for ID else do nothing
-			if (isSomeoneToDisplay()) {
-				firstRecord();// look for first record
-				int firstId = currentEmployee.getEmployeeId();
-				// if ID to search is already displayed do nothing else loop
-				// through records
-				if (searchByIdField.getText().trim().equals(idField.getText().trim()))
-					found = true;
-				else if (searchByIdField.getText().trim().equals(Integer.toString(currentEmployee.getEmployeeId()))) {
-					found = true;
-					displayRecords(currentEmployee);
-				} // end else if
-				else {
-					nextRecord();// look for next record
-					// loop until Employee found or until all Employees have
-					// been checked
-					while (firstId != currentEmployee.getEmployeeId()) {
-						// if found break from loop and display Employee details
-						// else look for next record
-						if (Integer.parseInt(searchByIdField.getText().trim()) == currentEmployee.getEmployeeId()) {
-							found = true;
-							displayRecords(currentEmployee);
-							break;
-						} else
-							nextRecord();// look for next record
-					} // end while
-				} // end else
-					// if Employee not found display message
-				if (!found)
-					JOptionPane.showMessageDialog(null, "Employee not found!");
-			} // end if
-		} // end try
-		catch (NumberFormatException e) {
-			searchByIdField.setBackground(new Color(255, 150, 150));
-			JOptionPane.showMessageDialog(null, "Wrong ID format!");
-		} // end catch
-		searchByIdField.setBackground(Color.WHITE);
-		searchByIdField.setText("");
-	}// end searchEmployeeByID
+		if (isSomeoneToDisplay()) {
+            try {
+                int targetId = parseSearchId();
+
+                if (targetId == currentEmployee.getEmployeeId() || searchMatchesCurrentId(targetId)) {
+                    found = true;
+                    displayRecords(currentEmployee);
+                } else {
+                    found = searchNextRecords(targetId);
+                }
+
+                if (!found) {
+                    JOptionPane.showMessageDialog(null, "Employee not found!");
+                }
+            } catch (NumberFormatException e) {
+                handleInvalidIdFormat();
+            } finally {
+                resetSearchField();
+            }
+        }
+    }
+
+    // Parse the search ID from the input field
+    private int parseSearchId() throws NumberFormatException {
+        searchByIdField.setBackground(Color.WHITE);
+        return Integer.parseInt(searchByIdField.getText().trim());
+    }
+
+    // Check if the search ID matches the current Employee's ID
+    private boolean searchMatchesCurrentId(int targetId) {
+        return searchByIdField.getText().trim().equals(Integer.toString(currentEmployee.getEmployeeId()));
+    }
+
+    // Search for the next records until the Employee is found or all Employees have been checked
+    private boolean searchNextRecords(int targetId) {
+        int firstId = currentEmployee.getEmployeeId();
+        nextRecord(); // look for the next record
+
+        while (firstId != currentEmployee.getEmployeeId()) {
+            if (targetId == currentEmployee.getEmployeeId()) {
+                displayRecords(currentEmployee);
+                return true;
+            } else {
+                nextRecord(); // look for the next record
+            }
+        }
+
+        return false;
+    }
+
+    // Handle invalid ID format
+    private void handleInvalidIdFormat() {
+        searchByIdField.setBackground(new Color(255, 150, 150));
+        JOptionPane.showMessageDialog(null, "Wrong ID format!");
+    }
+
+    // Reset the search field
+    private void resetSearchField() {
+        searchByIdField.setBackground(Color.WHITE);
+        searchByIdField.setText("");
+    }
 
 	// search Employee by surname
 	public void searchEmployeeBySurname() {
