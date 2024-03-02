@@ -509,38 +509,60 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		boolean found = false;
 		// if any active Employee record search for ID else do nothing
 		if (isSomeoneToDisplay()) {
-			firstRecord();// look for first record
-			String firstSurname = currentEmployee.getSurname().trim();
-			// if ID to search is already displayed do nothing else loop through
-			// records
-			if (searchBySurnameField.getText().trim().equalsIgnoreCase(surnameField.getText().trim()))
-				found = true;
-			else if (searchBySurnameField.getText().trim().equalsIgnoreCase(currentEmployee.getSurname().trim())) {
-				found = true;
-				displayRecords(currentEmployee);
-			} // end else if
-			else {
-				nextRecord();// look for next record
-				// loop until Employee found or until all Employees have been
-				// checked
-				while (!firstSurname.trim().equalsIgnoreCase(currentEmployee.getSurname().trim())) {
-					// if found break from loop and display Employee details
-					// else look for next record
-					if (searchBySurnameField.getText().trim().equalsIgnoreCase(currentEmployee.getSurname().trim())) {
-						found = true;
-						displayRecords(currentEmployee);
-						break;
-					} // end if
-					else
-						nextRecord();// look for next record
-				} // end while
-			} // end else
-				// if Employee not found display message
-			if (!found)
-				JOptionPane.showMessageDialog(null, "Employee not found!");
-		} // end if
-		searchBySurnameField.setText("");
-	}// end searchEmployeeBySurname
+            try {
+                String targetSurname = parseSearchSurname();
+
+                if (targetSurname.equalsIgnoreCase(currentEmployee.getSurname().trim())
+                        || searchMatchesCurrentSurname(targetSurname)) {
+                    found = true;
+                    displayRecords(currentEmployee);
+                } else {
+                    found = searchNextRecordsBySurname(targetSurname);
+                }
+
+                if (!found) {
+                    JOptionPane.showMessageDialog(null, "Employee not found!");
+                }
+            } catch (NumberFormatException e) {
+                handleInvalidSurnameFormat();
+            } finally {
+                resetSearchField();
+            }
+        }
+    }
+
+    // Parse the search surname from the input field
+    private String parseSearchSurname() throws NumberFormatException {
+        searchBySurnameField.setText("");
+        return searchBySurnameField.getText().trim();
+    }
+
+    // Check if the search surname matches the current Employee's surname
+    private boolean searchMatchesCurrentSurname(String targetSurname) {
+        return targetSurname.equalsIgnoreCase(currentEmployee.getSurname().trim());
+    }
+
+    // Search for the next records until the Employee is found or all Employees have been checked
+    private boolean searchNextRecordsBySurname(String targetSurname) {
+        String firstSurname = currentEmployee.getSurname().trim();
+        nextRecord(); // look for the next record
+
+        while (!firstSurname.equalsIgnoreCase(currentEmployee.getSurname().trim())) {
+            if (targetSurname.equalsIgnoreCase(currentEmployee.getSurname().trim())) {
+                displayRecords(currentEmployee);
+                return true;
+            } else {
+                nextRecord(); // look for the next record
+            }
+        }
+
+        return false;
+    }
+
+    // Handle invalid surname format
+    private void handleInvalidSurnameFormat() {
+        JOptionPane.showMessageDialog(null, "Invalid surname format!");
+    }
 
 	// get next free ID from Employees in the file
 	public int getNextFreeId() {
@@ -557,51 +579,74 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		return nextFreeId;
 	}// end getNextFreeId
 
-	// get values from text fields and create Employee object
-	private Employee getChangedDetails() {
-		boolean fullTime = false;
-		Employee theEmployee;
-		if (((String) fullTimeCombo.getSelectedItem()).equalsIgnoreCase("Yes"))
-			fullTime = true;
+	// Get values from text fields and create Employee object
+    private Employee getChangedDetails() {
+        boolean fullTime = ((String) fullTimeCombo.getSelectedItem()).equalsIgnoreCase("Yes");
+        int employeeId = Integer.parseInt(idField.getText());
+        String pps = ppsField.getText().toUpperCase();
+        String surname = surnameField.getText().toUpperCase();
+        String firstName = firstNameField.getText().toUpperCase();
+        char gender = genderCombo.getSelectedItem().toString().charAt(0);
+        String department = departmentCombo.getSelectedItem().toString();
+        double salary = Double.parseDouble(salaryField.getText());
 
-		theEmployee = new Employee(Integer.parseInt(idField.getText()), ppsField.getText().toUpperCase(),
-				surnameField.getText().toUpperCase(), firstNameField.getText().toUpperCase(),
-				genderCombo.getSelectedItem().toString().charAt(0), departmentCombo.getSelectedItem().toString(),
-				Double.parseDouble(salaryField.getText()), fullTime);
+        return new Employee(employeeId, pps, surname, firstName, gender, department, salary, fullTime);
+    }
 
-		return theEmployee;
-	}// end getChangedDetails
+    // Add Employee object to file
+    public void addRecord(Employee newEmployee) {
+        openFileForWriting();
+        writeRecordToFile(newEmployee);
+        closeWriteFile();
+    }
 
-	// add Employee object to fail
-	public void addRecord(Employee newEmployee) {
-		// open file for writing
-		application.openWriteFile(file.getAbsolutePath());
-		// write into a file
-		currentByteStart = application.addRecords(newEmployee);
-		application.closeWriteFile();// close file for writing
-	}// end addRecord
+    // Open file for writing
+    private void openFileForWriting() {
+        application.openWriteFile(file.getAbsolutePath());
+    }
 
-	// delete (make inactive - empty) record from file
-	private void deleteRecord() {
-		if (isSomeoneToDisplay()) {// if any active record in file display
-									// message and delete record
-			int returnVal = JOptionPane.showOptionDialog(frame, "Do you want to delete record?", "Delete",
-					JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
-			// if answer yes delete (make inactive - empty) record
-			if (returnVal == JOptionPane.YES_OPTION) {
-				// open file for writing
-				application.openWriteFile(file.getAbsolutePath());
-				// delete (make inactive - empty) record in file proper position
-				application.deleteRecords(currentByteStart);
-				application.closeWriteFile();// close file for writing
-				// if any active record in file display next record
-				if (isSomeoneToDisplay()) {
-					nextRecord();// look for next record
-					displayRecords(currentEmployee);
-				} // end if
-			} // end if
-		} // end if
-	}// end deleteDecord
+    // Write Employee object into the file
+    private void writeRecordToFile(Employee newEmployee) {
+        currentByteStart = application.addRecords(newEmployee);
+    }
+
+    // Close file for writing
+    private void closeWriteFile() {
+        application.closeWriteFile();
+    }
+
+    // Delete (make inactive - empty) record from file
+    private void deleteRecord() {
+        if (isSomeoneToDisplay()) {
+            int userChoice = confirmDeleteRecord();
+
+            if (userChoice == JOptionPane.YES_OPTION) {
+                openFileForWriting();
+                deleteRecordInFile();
+                closeWriteFile();
+                moveToNextRecord();
+            }
+        }
+    }
+
+    // Confirm if the user wants to delete the record
+    private int confirmDeleteRecord() {
+        return JOptionPane.showOptionDialog(frame, "Do you want to delete record?", "Delete",
+                JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
+    }
+
+    // Delete (make inactive - empty) record in the file at the proper position
+    private void deleteRecordInFile() {
+        application.deleteRecords(currentByteStart);
+    }
+
+    // Move to the next record if any active record is present in the file
+    private void moveToNextRecord() {
+        if (isSomeoneToDisplay()) {
+            nextRecord();
+            displayRecords(currentEmployee);
+        }
+    }
 
 	// create vector of vectors with all Employee details
 	private Vector<Object> getAllEmloyees() {
@@ -633,16 +678,29 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		return allEmployee;
 	}// end getAllEmployees
 
-	// activate field for editing
-	private void editDetails() {
-		// activate field for editing if there is records to display
-		if (isSomeoneToDisplay()) {
-			// remove euro sign from salary text field
-			salaryField.setText(fieldFormat.format(currentEmployee.getSalary()));
-			change = false;
-			setEnabled(true);// enable text fields for editing
-		} // end if
-	}// end editDetails
+	    // Activate fields for editing
+	    private void editDetails() {
+	        if (isSomeoneToDisplay()) {
+	            removeEuroSignFromSalaryField();
+	            resetChangeFlag();
+	            enableEditingFields();
+	        }
+	    }
+	
+	    // Remove euro sign from salary text field
+	    private void removeEuroSignFromSalaryField() {
+	        salaryField.setText(fieldFormat.format(currentEmployee.getSalary()));
+	    }
+	
+	    // Reset the change flag
+	    private void resetChangeFlag() {
+	        change = false;
+	    }
+	
+	    // Enable text fields for editing
+	    private void enableEditingFields() {
+	        setEnabled(true);
+	    }
 
 	// ignore changes and set text field unenabled
 	private void cancelChange() {
@@ -650,54 +708,58 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		displayRecords(currentEmployee);
 	}// end cancelChange
 
-	// check if any of records in file is active - ID is not 0
-	private boolean isSomeoneToDisplay() {
-		boolean someoneToDisplay = false;
-		// open file for reading
-		application.openReadFile(file.getAbsolutePath());
-		// check if any of records in file is active - ID is not 0
-		someoneToDisplay = application.isSomeoneToDisplay();
-		application.closeReadFile();// close file for reading
-		// if no records found clear all text fields and display message
-		if (!someoneToDisplay) {
-			currentEmployee = null;
-			idField.setText("");
-			ppsField.setText("");
-			surnameField.setText("");
-			firstNameField.setText("");
-			salaryField.setText("");
-			genderCombo.setSelectedIndex(0);
-			departmentCombo.setSelectedIndex(0);
-			fullTimeCombo.setSelectedIndex(0);
-			JOptionPane.showMessageDialog(null, "No Employees registered!");
-		}
-		return someoneToDisplay;
-	}// end isSomeoneToDisplay
+    // Check if any records in the file are active (ID is not 0)
+    private boolean isSomeoneToDisplay() {
+        openFileForReading();
+        boolean someoneToDisplay = application.isSomeoneToDisplay();
+        closeReadFile();
 
-	// check for correct PPS format and look if PPS already in use
-	public boolean correctPps(String pps, long currentByte) {
-		boolean ppsExist = false;
-		// check for correct PPS format based on assignment description
-		if (pps.length() == 8 || pps.length() == 9) {
-			if (Character.isDigit(pps.charAt(0)) && Character.isDigit(pps.charAt(1))
-					&& Character.isDigit(pps.charAt(2))	&& Character.isDigit(pps.charAt(3)) 
-					&& Character.isDigit(pps.charAt(4))	&& Character.isDigit(pps.charAt(5)) 
-					&& Character.isDigit(pps.charAt(6))	&& Character.isLetter(pps.charAt(7))
-					&& (pps.length() == 8 || Character.isLetter(pps.charAt(8)))) {
-				// open file for reading
-				application.openReadFile(file.getAbsolutePath());
-				// look in file is PPS already in use
-				ppsExist = application.isPpsExist(pps, currentByte);
-				application.closeReadFile();// close file for reading
-			} // end if
-			else
-				ppsExist = true;
-		} // end if
-		else
-			ppsExist = true;
+        if (!someoneToDisplay) {
+            clearTextFieldsAndDisplayMessage();
+        }
 
-		return ppsExist;
-	}// end correctPPS
+        return someoneToDisplay;
+    }
+
+    // Clear all text fields and display a message if no records are found
+    private void clearTextFieldsAndDisplayMessage() {
+        currentEmployee = null;
+        idField.setText("");
+        ppsField.setText("");
+        surnameField.setText("");
+        firstNameField.setText("");
+        salaryField.setText("");
+        genderCombo.setSelectedIndex(0);
+        departmentCombo.setSelectedIndex(0);
+        fullTimeCombo.setSelectedIndex(0);
+
+        JOptionPane.showMessageDialog(null, "No Employees registered!");
+    }
+
+    // Check for correct PPS format and if PPS is already in use
+    public boolean correctPps(String pps, long currentByte) {
+        if (isValidPpsFormat(pps)) {
+            openFileForReading();
+            boolean ppsExist = application.isPpsExist(pps, currentByte);
+            closeReadFile();
+            return ppsExist;
+        } else {
+            return true;
+        }
+    }
+
+    // Check if PPS has a valid format based on the assignment description
+    private boolean isValidPpsFormat(String pps) {
+        if (pps.length() == 8 || pps.length() == 9) {
+            return (Character.isDigit(pps.charAt(0)) && Character.isDigit(pps.charAt(1))
+                    && Character.isDigit(pps.charAt(2)) && Character.isDigit(pps.charAt(3))
+                    && Character.isDigit(pps.charAt(4)) && Character.isDigit(pps.charAt(5))
+                    && Character.isDigit(pps.charAt(6)) && Character.isLetter(pps.charAt(7))
+                    && (pps.length() == 8 || Character.isLetter(pps.charAt(8))));
+        } else {
+            return false;
+        }
+    }
 
 	// check if file name has extension .dat
 	private boolean checkFileName(File fileName) {
@@ -819,169 +881,254 @@ public class EmployeeDetails extends JFrame implements ActionListener, ItemListe
 		searchSurname.setEnabled(search);
 	}// end setEnabled
 
-	// open file
-	private void openFile() {
-		final JFileChooser fc = new JFileChooser();
-		fc.setDialogTitle("Open");
-		// display files in File Chooser only with extension .dat
-		fc.setFileFilter(datfilter);
-		File newFile; // holds opened file name and path
-		// if old file is not empty or changes has been made, offer user to save
-		// old file
-		if (file.length() != 0 || change) {
-			int returnVal = JOptionPane.showOptionDialog(frame, "Do you want to save changes?", "Save",
-					JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
-			// if user wants to save file, save it
-			if (returnVal == JOptionPane.YES_OPTION) {
-				saveFile();// save file
-			} // end if
-		} // end if
+    // Open a file
+    private void openFile() {
+        final JFileChooser fc = createFileChooser();
+        File newFile = chooseFileToOpen(fc);
 
-		int returnVal = fc.showOpenDialog(EmployeeDetails.this);
-		// if file been chosen, open it
-		if (returnVal == JFileChooser.APPROVE_OPTION) {
-			newFile = fc.getSelectedFile();
-			// if old file wasn't saved and its name is generated file name,
-			// delete this file
-			if (file.getName().equals(generatedFileName))
-				file.delete();// delete file
-			file = newFile;// assign opened file to file
-			// open file for reading
-			application.openReadFile(file.getAbsolutePath());
-			firstRecord();// look for first record
-			displayRecords(currentEmployee);
-			application.closeReadFile();// close file for reading
-		} // end if
-	}// end openFile
+        if (shouldSaveOldFile()) {
+            int returnVal = askUserToSaveChanges();
+            if (returnVal == JOptionPane.YES_OPTION) {
+                saveFile();
+            }
+        }
 
-	// save file
-	private void saveFile() {
-		// if file name is generated file name, save file as 'save as' else save
-		// changes to file
-		if (file.getName().equals(generatedFileName))
-			saveFileAs();// save file as 'save as'
-		else {
-			// if changes has been made to text field offer user to save these
-			// changes
-			if (change) {
-				int returnVal = JOptionPane.showOptionDialog(frame, "Do you want to save changes?", "Save",
-						JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
-				// save changes if user choose this option
-				if (returnVal == JOptionPane.YES_OPTION) {
-					// save changes if ID field is not empty
-					if (!idField.getText().equals("")) {
-						// open file for writing
-						application.openWriteFile(file.getAbsolutePath());
-						// get changes for current Employee
-						currentEmployee = getChangedDetails();
-						// write changes to file for corresponding Employee
-						// record
-						application.changeRecords(currentEmployee, currentByteStart);
-						application.closeWriteFile();// close file for writing
-					} // end if
-				} // end if
-			} // end if
+        if (newFile != null) {
+            handleOpenedFile(newFile);
+        }
+    }
 
-			displayRecords(currentEmployee);
-			setEnabled(false);
-		} // end else
-	}// end saveFile
+    // Create and configure a JFileChooser
+    private JFileChooser createFileChooser() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Open");
+        fc.setFileFilter(datfilter);
+        return fc;
+    }
 
-	// save changes to current Employee
-	private void saveChanges() {
-		int returnVal = JOptionPane.showOptionDialog(frame, "Do you want to save changes to current Employee?", "Save",
-				JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
-		// if user choose to save changes, save changes
-		if (returnVal == JOptionPane.YES_OPTION) {
-			// open file for writing
-			application.openWriteFile(file.getAbsolutePath());
-			// get changes for current Employee
-			currentEmployee = getChangedDetails();
-			// write changes to file for corresponding Employee record
-			application.changeRecords(currentEmployee, currentByteStart);
-			application.closeWriteFile();// close file for writing
-			changesMade = false;// state that all changes has bee saved
-		} // end if
-		displayRecords(currentEmployee);
-		setEnabled(false);
-	}// end saveChanges
+    // Choose a file to open using the given JFileChooser
+    private File chooseFileToOpen(JFileChooser fc) {
+        int returnVal = fc.showOpenDialog(EmployeeDetails.this);
+        return (returnVal == JFileChooser.APPROVE_OPTION) ? fc.getSelectedFile() : null;
+    }
 
-	// save file as 'save as'
-	private void saveFileAs() {
-		final JFileChooser fc = new JFileChooser();
-		File newFile;
-		String defaultFileName = "new_Employee.dat";
-		fc.setDialogTitle("Save As");
-		// display files only with .dat extension
-		fc.setFileFilter(datfilter);
-		fc.setApproveButtonText("Save");
-		fc.setSelectedFile(new File(defaultFileName));
+    // Check if the old file should be saved
+    private boolean shouldSaveOldFile() {
+        return file.length() != 0 || change;
+    }
 
-		int returnVal = fc.showSaveDialog(EmployeeDetails.this);
-		// if file has chosen or written, save old file in new file
-		if (returnVal == JFileChooser.APPROVE_OPTION) {
-			newFile = fc.getSelectedFile();
-			// check for file name
-			if (!checkFileName(newFile)) {
-				// add .dat extension if it was not there
-				newFile = new File(newFile.getAbsolutePath() + ".dat");
-				// create new file
-				application.createFile(newFile.getAbsolutePath());
-			} // end id
-			else
-				// create new file
-				application.createFile(newFile.getAbsolutePath());
+    // Ask the user whether to save changes
+    private int askUserToSaveChanges() {
+        return JOptionPane.showOptionDialog(frame, "Do you want to save changes?", "Save",
+                JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
+    }
 
-			try {// try to copy old file to new file
-				Files.copy(file.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				// if old file name was generated file name, delete it
-				if (file.getName().equals(generatedFileName))
-					file.delete();// delete file
-				file = newFile;// assign new file to file
-			} // end try
-			catch (IOException e) {
-			} // end catch
-		} // end if
-		changesMade = false;
-	}// end saveFileAs
+    // Handle the opened file
+    private void handleOpenedFile(File newFile) {
+        if (shouldDeleteOldFile()) {
+            file.delete();
+        }
 
-	// allow to save changes to file when exiting the application
-	private void exitApp() {
-		// if file is not empty allow to save changes
-		if (file.length() != 0) {
-			if (changesMade) {
-				int returnVal = JOptionPane.showOptionDialog(frame, "Do you want to save changes?", "Save",
-						JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
-				// if user chooses to save file, save file
-				if (returnVal == JOptionPane.YES_OPTION) {
-					saveFile();// save file
-					// delete generated file if user saved details to other file
-					if (file.getName().equals(generatedFileName))
-						file.delete();// delete file
-					System.exit(0);// exit application
-				} // end if
-					// else exit application
-				else if (returnVal == JOptionPane.NO_OPTION) {
-					// delete generated file if user chooses not to save file
-					if (file.getName().equals(generatedFileName))
-						file.delete();// delete file
-					System.exit(0);// exit application
-				} // end else if
-			} // end if
-			else {
-				// delete generated file if user chooses not to save file
-				if (file.getName().equals(generatedFileName))
-					file.delete();// delete file
-				System.exit(0);// exit application
-			} // end else
-				// else exit application
-		} else {
-			// delete generated file if user chooses not to save file
-			if (file.getName().equals(generatedFileName))
-				file.delete();// delete file
-			System.exit(0);// exit application
-		} // end else
-	}// end exitApp
+        file = newFile;
+        openAndDisplayRecords();
+    }
+
+    // Check if the old file should be deleted
+    private boolean shouldDeleteOldFile() {
+        return file.getName().equals(generatedFileName);
+    }
+
+    // Open the file for reading and display records
+    private void openAndDisplayRecords() {
+        application.openReadFile(file.getAbsolutePath());
+        firstRecord();
+        displayRecords(currentEmployee);
+        application.closeReadFile();
+    }
+
+    // Save the file
+    private void saveFile() {
+        if (isNewGeneratedFile()) {
+            saveFileAs();
+        } else {
+            handleSaveChanges();
+            displayRecords(currentEmployee);
+            setEnabled(false);
+        }
+    }
+
+    // Check if the file is a new generated file
+    private boolean isNewGeneratedFile() {
+        return file.getName().equals(generatedFileName);
+    }
+
+    // Handle saving changes to the file
+    private void handleSaveChanges() {
+        if (shouldSaveChanges()) {
+            openFileForWriting();
+            saveChangesToFile();
+            closeWriteFile();
+        }
+    }
+
+    // Check if changes should be saved
+    private boolean shouldSaveChanges() {
+        return change && !idField.getText().isEmpty();
+    }
+
+    // Save changes to the file for the corresponding Employee record
+    private void saveChangesToFile() {
+        currentEmployee = getChangedDetails();
+        application.changeRecords(currentEmployee, currentByteStart);
+    }
+
+
+    // Save changes to the current Employee
+    private void saveChanges() {
+        int returnVal = askUserToSaveChanges();
+
+        if (returnVal == JOptionPane.YES_OPTION) {
+            handleSaveChangesToEmployee();
+            displayRecords(currentEmployee);
+            setEnabled(false);
+        }
+    }
+
+    // Handle saving changes to the file
+    private void handleSaveChangesToEmployee() {
+        openFileForWriting();
+        saveChangesToFile();
+        closeWriteFile();
+        changesMade = false; // State that all changes have been saved
+    }
+
+
+    // Save file as 'save as'
+    private void saveFileAs() {
+        final JFileChooser fc = createSaveAsFileChooser();
+        File newFile = chooseFileToSaveAs(fc);
+
+        if (newFile != null) {
+            handleSaveAs(newFile);
+        }
+
+        changesMade = false;
+    }
+
+    // Create and configure a JFileChooser for 'Save As'
+    private JFileChooser createSaveAsFileChooser() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Save As");
+        fc.setFileFilter(datfilter);
+        fc.setApproveButtonText("Save");
+        fc.setSelectedFile(new File("new_Employee.dat"));
+        return fc;
+    }
+
+    // Choose a file to save as using the given JFileChooser
+    private File chooseFileToSaveAs(JFileChooser fc) {
+        int returnVal = fc.showSaveDialog(EmployeeDetails.this);
+        return (returnVal == JFileChooser.APPROVE_OPTION) ? fc.getSelectedFile() : null;
+    }
+
+    // Handle saving the file as 'Save As'
+    private void handleSaveAs(File newFile) {
+        if (!checkFileNameValidity(newFile)) {
+            newFile = addDatExtensionAndCreateFile(newFile);
+        } else {
+            application.createFile(newFile.getAbsolutePath());
+        }
+
+        copyOldFileToNewFile(newFile);
+        handleGeneratedFileNameDeletion(newFile);
+        file = newFile;
+    }
+
+    // Check if the file name is valid
+    private boolean checkFileNameValidity(File newFile) {
+        return newFile.getName().endsWith(".dat");
+    }
+
+    // Add '.dat' extension to the file name and create the file
+    private File addDatExtensionAndCreateFile(File newFile) {
+        File fileWithDatExtension = new File(newFile.getAbsolutePath() + ".dat");
+        application.createFile(fileWithDatExtension.getAbsolutePath());
+        return fileWithDatExtension;
+    }
+
+    // Copy the old file to the new file
+    private void copyOldFileToNewFile(File newFile) {
+        try {
+            Files.copy(file.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            // Handle or log the exception
+        }
+    }
+
+    // Handle the deletion of the old file if its name was generated
+    private void handleGeneratedFileNameDeletion(File newFile) {
+        if (file.getName().equals(generatedFileName)) {
+            file.delete();
+        }
+    }
+
+    // Allow saving changes to file when exiting the application
+    private void exitApp() {
+        if (file.length() != 0) {
+            handleNonEmptyFileExit();
+        } else {
+            handleEmptyFileExit();
+        }
+    }
+
+    // Handle exit when the file is not empty
+    private void handleNonEmptyFileExit() {
+        if (changesMade) {
+            int returnVal = askUserToSaveChangesOnExit();
+            handleExitOptions(returnVal);
+        } else {
+            handleNoChangesExit();
+        }
+    }
+
+    // Handle exit when the file is empty
+    private void handleEmptyFileExit() {
+        handleNoChangesExit();
+    }
+
+    // Ask the user whether to save changes when exiting
+    private int askUserToSaveChangesOnExit() {
+        return JOptionPane.showOptionDialog(frame, "Do you want to save changes?", "Save",
+                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE, null, null, null);
+    }
+
+    // Handle different exit options based on user's choice
+    private void handleExitOptions(int returnVal) {
+        if (returnVal == JOptionPane.YES_OPTION) {
+            saveFile();
+        }
+
+        deleteGeneratedFileIfNecessary();
+        exitApplication();
+    }
+
+    // Handle exit when there are no changes
+    private void handleNoChangesExit() {
+        deleteGeneratedFileIfNecessary();
+        exitApplication();
+    }
+
+    // Delete the generated file if its name matches
+    private void deleteGeneratedFileIfNecessary() {
+        if (file.getName().equals(generatedFileName)) {
+            file.delete();
+        }
+    }
+
+    // Exit the application
+    private void exitApplication() {
+        System.exit(0);
+    }
 
 	// generate 20 character long file name
 	private String getFileName() {
