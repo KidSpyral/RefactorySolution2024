@@ -73,24 +73,34 @@ public class SearchByIdDialog extends JDialog implements ActionListener {
 
 	// action listener for save and cancel button
 	public void actionPerformed(ActionEvent e) {
-		// if option search, search for Employee
-		if (e.getSource() == search) {
-			// try get correct valus from text field
-			try {
-				Double.parseDouble(searchField.getText());
-				this.parent.searchByIdField.setText(searchField.getText());
-				// search Employee by ID
-				this.parent.searchEmployeeById();
-				dispose();// dispose dialog
-			}// end try
-			catch (NumberFormatException num) {
-				// display message and set colour to text field if entry is wrong
-				searchField.setBackground(new Color(255, 150, 150));
-				JOptionPane.showMessageDialog(null, "Wrong ID format!");
-			}// end catch
-		}// end if
-		// else dispose dialog
-		else if (e.getSource() == cancel)
-			dispose();
-	}// end actionPerformed
+	    if (e.getSource() == search) {
+	        handleSearchAction();
+	    } else if (e.getSource() == cancel) {
+	        dispose();
+	    }
+	}
+
+	// Handle search action
+	private void handleSearchAction() {
+	    try {
+	        validateAndSearch();
+	    } catch (NumberFormatException num) {
+	        handleInvalidSearchInput();
+	    }
+	}
+
+	// Validate input and perform search
+	private void validateAndSearch() throws NumberFormatException {
+	    Double.parseDouble(searchField.getText());
+	    this.parent.searchByIdField.setText(searchField.getText());
+	    this.parent.searchEmployeeById();
+	    dispose();
+	}
+
+	// Handle invalid search input
+	private void handleInvalidSearchInput() {
+	    searchField.setBackground(new Color(255, 150, 150));
+	    JOptionPane.showMessageDialog(null, "Wrong ID format!");
+	}
+
 }// end class searchByIdDialog

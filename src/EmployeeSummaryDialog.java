@@ -32,20 +32,24 @@ public class EmployeeSummaryDialog extends JDialog implements ActionListener {
 	JButton back;
 	
 	public EmployeeSummaryDialog(Vector<Object> allEmployees) {
-		setTitle("Employee Summary");
-		setModal(true);
-		this.allEmployees = allEmployees;
+        initializeDialog();
+        this.allEmployees = allEmployees;
+        setContentPane(createSummaryPane());
+        setSize(850, 500);
+        setLocation(350, 250);
+        setVisible(true);
+    }
 
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    private void initializeDialog() {
+        setTitle("Employee Summary");
+        setModal(true);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
 
-		JScrollPane scrollPane = new JScrollPane(summaryPane());
-		setContentPane(scrollPane);
-
-		setSize(850, 500);
-		setLocation(350, 250);
-		setVisible(true);
-
-	}
+    private JScrollPane createSummaryPane() {
+        return new JScrollPane(summaryPane());
+    }
+    
 	// initialise container
 	public Container summaryPane() {
 		JPanel summaryDialog = new JPanel(new MigLayout());
@@ -94,7 +98,7 @@ public class EmployeeSummaryDialog extends JDialog implements ActionListener {
 		// set alignments
 		employeeTable.getColumnModel().getColumn(0).setCellRenderer(leftRenderer);
 		employeeTable.getColumnModel().getColumn(4).setCellRenderer(centerRenderer);
-		employeeTable.getColumnModel().getColumn(6).setCellRenderer(new DecimalFormatRenderer());
+		employeeTable.getColumnModel().getColumn(6).setCellRenderer(new SalaryRenderer());
 
 		employeeTable.setEnabled(false);
 		employeeTable.setPreferredScrollableViewportSize(new Dimension(800, (15 * employeeTable.getRowCount() + 15)));
@@ -118,21 +122,22 @@ public class EmployeeSummaryDialog extends JDialog implements ActionListener {
 		}
 
 	}
-	// format for salary column
-	static class DecimalFormatRenderer extends DefaultTableCellRenderer {
-		 private static final DecimalFormat format = new DecimalFormat(
-		 "\u20ac ###,###,##0.00" );
+	// Format for salary column
+	public class SalaryRenderer extends DefaultTableCellRenderer {
+	    private static final DecimalFormat SALARY_FORMAT = new DecimalFormat("\u20ac ###,###,##0.00");
 
-		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-				int row, int column) {
+	    @Override
+	    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+	                                                   int row, int column) {
 
-			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-			 JLabel label = (JLabel) c;
-			 label.setHorizontalAlignment(JLabel.RIGHT);
-			 // format salary column
-			value = format.format((Number) value);
+	        Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+	        JLabel label = (JLabel) c;
+	        label.setHorizontalAlignment(JLabel.RIGHT);
 
-			return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-		}// end getTableCellRendererComponent
-	}// DefaultTableCellRenderer
+	        // Format salary column
+	        value = SALARY_FORMAT.format((Number) value);
+
+	        return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+	    }
+	}
 }// end class EmployeeSummaryDialog
