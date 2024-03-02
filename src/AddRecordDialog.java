@@ -107,18 +107,48 @@ public class AddRecordDialog extends JDialog implements ActionListener {
 
 	// add record to file
 	public void addRecord() {
-		boolean fullTime = false;
-		Employee theEmployee;
+	    boolean fullTime = isFullTimeSelected();
+	    
+	    // create new Employee record with details from text fields
+	    Employee theEmployee = createEmployee(fullTime);
 
-		if (((String) fullTimeCombo.getSelectedItem()).equalsIgnoreCase("Yes"))
-			fullTime = true;
-		// create new Employee record with details from text fields
-		theEmployee = new Employee(Integer.parseInt(idField.getText()), ppsField.getText().toUpperCase(), surnameField.getText().toUpperCase(),
-				firstNameField.getText().toUpperCase(), genderCombo.getSelectedItem().toString().charAt(0),
-				departmentCombo.getSelectedItem().toString(), Double.parseDouble(salaryField.getText()), fullTime);
-		this.parent.currentEmployee = theEmployee;
-		this.parent.addRecord(theEmployee);
-		this.parent.displayRecords(theEmployee);
+	    updateParentEmployee(theEmployee);
+	    updateParentRecords(theEmployee);
+	    displayParentRecords(theEmployee);
+	}
+
+	// Helper method to check if "Yes" is selected in fullTimeCombo
+	private boolean isFullTimeSelected() {
+	    return ((String) fullTimeCombo.getSelectedItem()).equalsIgnoreCase("Yes");
+	}
+
+	// Helper method to create a new Employee from text fields
+	private Employee createEmployee(boolean fullTime) {
+	    return new Employee(
+	        Integer.parseInt(idField.getText()),
+	        ppsField.getText().toUpperCase(),
+	        surnameField.getText().toUpperCase(),
+	        firstNameField.getText().toUpperCase(),
+	        genderCombo.getSelectedItem().toString().charAt(0),
+	        departmentCombo.getSelectedItem().toString(),
+	        Double.parseDouble(salaryField.getText()),
+	        fullTime
+	    );
+	}
+
+	// Helper method to update the currentEmployee in the parent
+	private void updateParentEmployee(Employee employee) {
+	    this.parent.currentEmployee = employee;
+	}
+
+	// Helper method to add the Employee record to the parent
+	private void updateParentRecords(Employee employee) {
+	    this.parent.addRecord(employee);
+	}
+
+	// Helper method to display the Employee record in the parent
+	private void displayParentRecords(Employee employee) {
+	    this.parent.displayRecords(employee);
 	}
 
 	// check for input in text fields
@@ -181,21 +211,27 @@ public class AddRecordDialog extends JDialog implements ActionListener {
 
 	// action performed
 	public void actionPerformed(ActionEvent e) {
-		// if chosen option save, save record to file
-		if (e.getSource() == save) {
-			// if inputs correct, save record
-			if (checkInput()) {
-				addRecord();// add record to file
-				dispose();// dispose dialog
-				this.parent.changesMade = true;
-			}// end if
-			// else display message and set text fields to white colour
-			else {
-				JOptionPane.showMessageDialog(null, "Wrong values or format! Please check!");
-				setToWhite();
-			}// end else
-		}// end if
-		else if (e.getSource() == cancel)
-			dispose();// dispose dialog
-	}// end actionPerformed
-}// end class AddRecordDialog
+	    if (e.getSource() == save) {
+	        handleSaveAction();
+	    } else if (e.getSource() == cancel) {
+	        dispose();// dispose dialog
+	    }
+	}
+
+	// Handle save action
+	private void handleSaveAction() {
+	    if (checkInput()) {
+	        addRecord();// add record to file
+	        dispose();// dispose dialog
+	        this.parent.changesMade = true;
+	    } else {
+	        showErrorMessage("Wrong values or format! Please check!");
+	        setToWhite();
+	    }
+	}
+
+	// Show error message
+	private void showErrorMessage(String message) {
+	    JOptionPane.showMessageDialog(null, message);
+	}
+}
