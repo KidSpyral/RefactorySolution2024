@@ -22,12 +22,11 @@ class JTextFieldLimit extends PlainDocument {
   }// end JTextFieldLimit
 
   public void insertString(int offset, String str, AttributeSet attr) throws BadLocationException {
-    if (str == null)
-      return;
+	    if (str != null && (getLength() + str.length()) > limit) {
+	        JOptionPane.showMessageDialog(null, "For input " + limit + " characters maximum!");
+	    } else {
+	        super.insertString(offset, str, attr);
+	    }
+	}
 
-    if ((getLength() + str.length()) <= limit) 
-      super.insertString(offset, str, attr);
-    else
-    	JOptionPane.showMessageDialog(null, "For input " + limit + " characters maximum!");
-  }// end insertString
 }// end class JTextFieldLimits

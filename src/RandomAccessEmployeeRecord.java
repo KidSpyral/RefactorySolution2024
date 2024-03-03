@@ -37,19 +37,15 @@ public class RandomAccessEmployeeRecord extends Employee
 		setFullTime(file.readBoolean());
    } // end read
 
-   // Ensure that string is correct length
-   private String readName( RandomAccessFile file ) throws IOException
-   {
-      char name[] = new char[ 20 ], temp;
+   private String readName(RandomAccessFile file) throws IOException {
+	    char[] nameChars = new char[20];
 
-      for ( int count = 0; count < name.length; count++ )
-      {
-         temp = file.readChar();
-         name[ count ] = temp;
-      } // end for     
-      
-      return new String( name ).replace( '\0', ' ' );
-   } // end readName
+	    for (int count = 0; count < nameChars.length; count++) {
+	        nameChars[count] = file.readChar();
+	    }
+
+	    return new String(nameChars).replace('\0', ' ').trim();
+	}
 
    // Write a record to specified RandomAccessFile
    public void write( RandomAccessFile file ) throws IOException
@@ -64,18 +60,14 @@ public class RandomAccessEmployeeRecord extends Employee
       file.writeBoolean(getFullTime());
    } // end write
 
-   // Ensure that string is correct length
-   private void writeName( RandomAccessFile file, String name )
-      throws IOException
-   {
-      StringBuffer buffer = null;
+   private void writeName(RandomAccessFile file, String name) throws IOException {
+	    String paddedName = padString(name, 20);
+	    file.writeChars(paddedName);
+	} // end writeName
 
-      if ( name != null ) 
-         buffer = new StringBuffer( name );
-      else 
-         buffer = new StringBuffer( 20 );
-
-      buffer.setLength( 20 );
-      file.writeChars( buffer.toString() );
-   } // end writeName
+	private String padString(String str, int length) {
+	    StringBuilder paddedStr = new StringBuilder((str != null) ? str : "");
+	    paddedStr.setLength(length);
+	    return paddedStr.toString();
+	}
 } // end class RandomAccessEmployeeRecord
